@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Мой день</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0D0D0F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Мой день">
+
+<style>
+  :root{
+    --paper:#0D0D0F;
+    --card:#1C1C1F;
+    --card-2:#232326;
+    --ink:#ECECEC;
+    --ink-soft:#8B8B90;
+    --line:#28282C;
+    --accent:#7C93E0;
+    --accent-soft:#242B3E;
+    --sage:#84B08B;
+    --sage-soft:#1E2A20;
+    --coral:#E08585;
+    --coral-soft:#2E1F20;
+    --amber:#E0B96A;
+    --amber-soft:#2E2718;
+    --radius:18px;
+    --glass-bg: rgba(255,255,255,0.06);
+    --glass-bg-strong: rgba(30,30,34,0.55);
+    --glass-border: rgba(255,255,255,0.10);
+    --glass-highlight: rgba(255,255,255,0.14);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0; height:100%; overscroll-behavior-y: none;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display:flex; flex-direction:column; min-height:100vh;
+    position:relative;
+  }
+  body::before{
+    content:''; position:fixed; inset:0; z-index:-1;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(124,147,224,0.32), transparent 42%),
+      radial-gradient(circle at 90% 16%, rgba(224,133,133,0.20), transparent 40%),
+      radial-gradient(circle at 26% 94%, rgba(132,176,139,0.22), transparent 45%),
+      radial-gradient(circle at 92% 88%, rgba(224,185,106,0.16), transparent 40%),
+      var(--paper);
+  }
+  h1,h2,h3{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight:700; letter-spacing:-0.3px; margin:0;}
+
+  header{
+    padding: calc(16px + var(--safe-top)) 20px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    margin: 0 12px 10px; border-radius: 0 0 24px 24px;
+    background: var(--glass-bg-strong);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid var(--glass-border); border-top:none;
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 8px 24px rgba(0,0,0,0.3);
+  }
+  header h1{font-size:25px; color:var(--ink);}
+  header .date{font-size:13px; color:var(--ink-soft); margin-top:4px; text-transform:capitalize; font-weight:400;}
+  .bell{
+    width:40px; height:40px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink-soft); cursor:pointer;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+    border:1px solid var(--glass-border);
+  }
+  .bell.on{ background:rgba(124,147,224,0.85); color:#0D0D0F; border-color:rgba(124,147,224,0.9); }
+
+  main{ flex:1; overflow-y:auto; padding: 4px 16px calc(112px + var(--safe-bottom)); }
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  .empty{
+    text-align:center; color:var(--ink-soft); font-size:14px;
+    padding: 48px 20px; line-height:1.6;
+  }
+
+  .card{
+    border-radius:var(--radius);
+    padding:14px 16px; margin-bottom:10px;
+    display:flex; gap:12px; align-items:flex-start;
+    cursor:pointer;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: blur(22px) saturate(180%);
+    border:1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: background .15s;
+  }
+  .card:active{ background: rgba(255,255,255,0.10); }
+  .card .content{flex:1; min-width:0;}
+  .card .title{font-size:15px; line-height:1.4; word-break:break-word; font-weight:400;}
+  .card .meta{font-size:12.5px; color:var(--ink-soft); margin-top:3px;}
+  .card .body{font-size:13.5px; color:var(--ink-soft); margin-top:5px; line-height:1.5; white-space:pre-wrap; word-break:break-word;}
+  .card.done .title{ text-decoration: line-through; color:var(--ink-soft); }
+  .del{
+    border:none; background:none; color:var(--ink-soft); font-size:18px;
+    width:26px; height:26px; flex-shrink:0; cursor:pointer; border-radius:8px;
+  }
+  .del:active{ background:rgba(255,255,255,0.12); }
+
+  .prio-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:6px; }
+  .prio-high{ background:var(--coral); }
+  .prio-med{ background:var(--amber); }
+  .prio-low{ background:var(--sage); }
+
+  .check{
+    width:22px; height:22px; border-radius:7px; border:1.5px solid var(--glass-border);
+    flex-shrink:0; margin-top:2px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.04);
+  }
+  .check.done{ background:var(--sage); border-color:var(--sage); color:#12211a; font-size:14px; }
+
+  .today-chip{
+    display:inline-block; font-size:13px; color:var(--ink-soft); font-weight:500;
+    padding:9px 16px; border-radius:20px; margin-bottom:12px;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+    border:1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .today-chip-accent{ color:var(--accent); border-color: rgba(124,147,224,0.4); background: rgba(124,147,224,0.16); }
+
+  .grid-wrap{
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
+    border-radius:var(--radius);
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: blur(22px) saturate(180%);
+    border:1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  table.sched{ border-collapse:collapse; width:100%; min-width:580px; }
+  table.sched th, table.sched td{ border-bottom:1px solid var(--glass-border); border-right:1px solid var(--glass-border); vertical-align:top; }
+  table.sched th:last-child, table.sched td:last-child{ border-right:none; }
+  table.sched tr:last-child td{ border-bottom:none; }
+  table.sched thead th{
+    background:rgba(28,28,31,0.75); color:var(--ink-soft); font-size:11.5px; font-weight:400;
+    padding:10px 6px; text-align:center; position:sticky; top:0; z-index:2;
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  }
+  table.sched thead th.today{ color:var(--accent); background: rgba(124,147,224,0.22); font-weight:700; }
+  table.sched th.timecol, table.sched td.timecol{
+    position:sticky; left:0; z-index:1; background:rgba(28,28,31,0.75);
+    width:54px; min-width:54px; text-align:center; padding:8px 4px;
+    font-size:10.5px; color:var(--ink-soft); line-height:1.4;
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  }
+  table.sched thead th.timecol{ z-index:3; }
+  table.sched td.gcell{ min-width:104px; padding:7px; cursor:pointer; background:transparent; }
+  table.sched td.gcell.today-col{ background: rgba(124,147,224,0.10); }
+  table.sched td.gcell:active{ background:rgba(255,255,255,0.10); }
+  .gitem{ margin-bottom:6px; }
+  .gitem:last-child{ margin-bottom:0; }
+  .gitem .gtitle{ font-size:12px; line-height:1.3; color:var(--ink); font-weight:400; }
+  .gitem .groom{ font-size:10.5px; color:var(--ink-soft); margin-top:1px; }
+  .gcell-plus{ color:var(--ink-soft); text-align:center; font-size:15px; opacity:0.3; }
+
+  .slot-item{
+    display:flex; gap:10px; align-items:flex-start;
+    border-radius:12px; padding:12px 14px; margin-bottom:8px; cursor:pointer;
+    background: rgba(255,255,255,0.06); border:1px solid var(--glass-border);
+  }
+  .slot-item .content{ flex:1; min-width:0; }
+  .del-inline{ border:none; background:none; color:var(--ink-soft); font-size:18px; width:24px; height:24px; cursor:pointer; flex-shrink:0; }
+
+  .day-tabs{ display:flex; gap:6px; margin-bottom:12px; }
+  .day-tab{
+    flex:1; text-align:center; font-size:12.5px; font-weight:500; color:var(--ink-soft);
+    padding:9px 4px; border-radius:14px; cursor:pointer;
+    background: var(--glass-bg); border:1px solid var(--glass-border);
+    -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+  }
+  .day-tab.is-today{ color:var(--accent); }
+  .day-tab.active{ color:#0D0D0F; background: rgba(124,147,224,0.9); border-color: rgba(124,147,224,0.9); font-weight:700; }
+
+  .chip-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .week-chip{
+    display:inline-block; font-size:12.5px; color:var(--ink-soft); font-weight:500;
+    padding:9px 14px; border-radius:20px;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+    border:1px solid var(--glass-border);
+  }
+  .week-tag{ font-size:10.5px; font-weight:600; padding:1px 7px; border-radius:8px; margin-left:6px; vertical-align:middle; }
+  .week-tag.this-week{ color:var(--accent); background: rgba(124,147,224,0.18); }
+  .week-tag.other-week{ color:var(--ink-soft); background: rgba(255,255,255,0.06); }
+  .gitem.faded{ opacity:0.45; }
+
+  .day-slot{
+    display:flex; gap:12px; align-items:flex-start;
+    border-radius:var(--radius); padding:13px 14px; margin-bottom:9px; cursor:pointer;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
+    border:1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .day-slot:active{ background: rgba(255,255,255,0.10); }
+  .day-slot .timecol2{
+    flex-shrink:0; width:56px; text-align:center; font-size:11px; color:var(--ink-soft); line-height:1.5; padding-top:1px;
+  }
+  .day-slot .slot-body{ flex:1; min-width:0; }
+  .day-slot .gitem{ margin-bottom:6px; }
+  .day-slot .gitem:last-child{ margin-bottom:0; }
+  .day-slot .gtitle{ font-size:14.5px; line-height:1.4; color:var(--ink); }
+  .day-slot .groom{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  .day-slot.empty-slot .slot-body{ color:var(--ink-soft); font-size:13px; opacity:0.5; }
+
+  nav{
+    position:fixed; left:12px; right:12px; bottom: calc(10px + var(--safe-bottom));
+    border-radius:26px; display:flex; padding: 8px 10px;
+    background: var(--glass-bg-strong);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    backdrop-filter: blur(30px) saturate(180%);
+    border:1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 12px 30px rgba(0,0,0,0.4);
+  }
+  nav button{
+    flex:1; background:none; border:none; display:flex; flex-direction:column;
+    align-items:center; gap:4px; color:var(--ink-soft); font-size:11px; font-weight:500;
+    padding:8px 0; cursor:pointer; font-family:inherit; border-radius:18px;
+    transition: background .15s, color .15s;
+  }
+  nav button.active{ color:var(--accent); background:rgba(124,147,224,0.14); }
+  nav svg{ width:21px; height:21px; }
+
+  .fab{
+    position:fixed; right:20px; bottom: calc(90px + var(--safe-bottom));
+    width:56px; height:56px; border-radius:50%;
+    color:#0D0D0F; border:none; font-size:26px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    background: linear-gradient(160deg, rgba(160,178,235,0.95), rgba(124,147,224,0.85));
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border:1px solid rgba(255,255,255,0.35);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), 0 10px 24px rgba(124,147,224,0.45);
+  }
+
+  .sheet-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,0.45);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    display:none; align-items:flex-end; z-index:20;
+  }
+  .sheet-backdrop.open{ display:flex; }
+  .sheet{
+    width:100%; border-radius:26px 26px 0 0;
+    padding: 12px 20px calc(20px + var(--safe-bottom));
+    max-height:85vh; overflow-y:auto;
+    background: rgba(24,24,27,0.82);
+    -webkit-backdrop-filter: blur(34px) saturate(180%);
+    backdrop-filter: blur(34px) saturate(180%);
+    border:1px solid var(--glass-border); border-bottom:none;
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 -10px 30px rgba(0,0,0,0.4);
+  }
+  .sheet::before{
+    content:''; display:block; width:36px; height:5px; border-radius:3px;
+    background:rgba(255,255,255,0.22); margin:0 auto 16px;
+  }
+  .sheet h2{ font-size:18px; margin-bottom:14px; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:12.5px; color:var(--ink-soft); margin-bottom:5px; }
+  .field input, .field textarea, .field select{
+    width:100%; padding:11px 12px; border-radius:12px;
+    font-size:15px; font-family:inherit; color:var(--ink);
+    background: rgba(255,255,255,0.06); border:1px solid var(--glass-border);
+  }
+  .field textarea{ resize:vertical; min-height:70px; }
+  .row2{ display:flex; gap:10px; }
+  .row2 .field{ flex:1; }
+  .prio-choice{ display:flex; gap:8px; }
+  .prio-choice button{
+    flex:1; padding:9px; border-radius:12px; border:1px solid var(--glass-border);
+    background: rgba(255,255,255,0.05); font-size:13.5px; cursor:pointer; color:var(--ink-soft);
+  }
+  .prio-choice button.sel{ border-color:currentColor; font-weight:bold; }
+  .prio-choice button[data-p="high"].sel{ background:var(--coral-soft); color:var(--coral); border-color:var(--coral); }
+  .prio-choice button[data-p="med"].sel{ background:var(--amber-soft); color:var(--amber); border-color:var(--amber); }
+  .prio-choice button[data-p="low"].sel{ background:var(--sage-soft); color:var(--sage); border-color:var(--sage); }
+
+  .sheet-actions{ display:flex; gap:10px; margin-top:16px; }
+  .btn{
+    flex:1; padding:13px; border-radius:14px; border:none; font-size:15px;
+    font-family:inherit; cursor:pointer;
+  }
+  .btn-primary{ background:linear-gradient(160deg, rgba(160,178,235,0.95), rgba(124,147,224,0.85)); color:#0D0D0F; font-weight:600; }
+  .btn-secondary{ background:rgba(255,255,255,0.06); color:var(--ink-soft); border:1px solid var(--glass-border); }
+  .btn-danger{ background:var(--coral-soft); color:var(--coral); }
+
+  .toast{
+    position:fixed; top: calc(14px + var(--safe-top)); left:50%; transform:translateX(-50%);
+    color:var(--ink); padding:10px 18px; border-radius:20px;
+    font-size:13.5px; z-index:30; opacity:0; pointer-events:none; transition:opacity .25s;
+    background: rgba(30,30,34,0.75);
+    -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+    border:1px solid var(--glass-border);
+  }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Мой день</h1>
+    <div class="date" id="todayLabel"></div>
+  </div>
+  <button class="bell" id="bellBtn" title="Уведомления" aria-label="Включить уведомления">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+  </button>
+</header>
+
+<main>
+  <section class="view active" id="view-schedule"></section>
+  <section class="view" id="view-notes"></section>
+  <section class="view" id="view-tasks"></section>
+</main>
+
+<button class="fab" id="fabBtn" aria-label="Добавить">+</button>
+
+<nav>
+  <button class="tab active" data-view="schedule">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+    Расписание
+  </button>
+  <button class="tab" data-view="notes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13l3 3v13H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+    Заметки
+  </button>
+  <button class="tab" data-view="tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M4 6l1.5 1.5L8 5"/></svg>
+    Задачи
+  </button>
+</nav>
+
+<div class="sheet-backdrop" id="sheetBackdrop">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- storage ----------
+const store = {
+  get(key){ try{ return JSON.parse(localStorage.getItem(key)) || []; }catch(e){ return []; } },
+  set(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const DAY_NAMES = ['Понедельник','Вторник','Среда','Четверг','Пятница'];
+const DAY_SHORT = ['Пн','Вт','Ср','Чт','Пт'];
+const SLOTS = [
+  {start:'08:00', end:'09:30'},
+  {start:'09:35', end:'11:05'},
+  {start:'11:10', end:'12:40'},
+  {start:'12:50', end:'14:20'},
+  {start:'14:30', end:'16:00'},
+  {start:'16:05', end:'17:35'},
+];
+
+// ---------- seed schedule (from uploaded timetable, with real week markers) ----------
+// week: 0 = every week, 1 = only 1-неделя, 2 = only 2-неделя
+const SEED_SCHEDULE_RAW = [
+  {day:0, start:'08:00', end:'09:30', title:'ПС-262г', room:'006', week:1},
+  {day:0, start:'09:35', end:'11:05', title:'МТ-251г', room:'209', week:1},
+  {day:0, start:'11:10', end:'12:40', title:'ПО-242.1г', room:'404', week:0},
+  {day:0, start:'14:30', end:'16:00', title:'БК-251.2/3г', room:'403', week:1},
+  {day:0, start:'14:30', end:'16:00', title:'ВТ-252г', room:'416', week:2},
+  {day:0, start:'16:05', end:'17:35', title:'ПО-252.2г', room:'406', week:0},
+
+  {day:1, start:'09:35', end:'11:05', title:'ПО-252.1г', room:'407', week:1},
+  {day:1, start:'11:10', end:'12:40', title:'БК-251.1г', room:'406', week:0},
+  {day:1, start:'11:10', end:'12:40', title:'ПО-252.2г', room:'406', week:0},
+  {day:1, start:'12:50', end:'14:20', title:'ПО-242.3г', room:'211', week:0},
+  {day:1, start:'14:30', end:'16:00', title:'ВТ-252г', room:'416', week:0},
+  {day:1, start:'16:05', end:'17:35', title:'ПО-242.2г', room:'405', week:0},
+
+  {day:2, start:'09:35', end:'11:05', title:'ПИ-252.1г', room:'212', week:0},
+  {day:2, start:'11:10', end:'12:40', title:'ПО-252.1г', room:'407', week:0},
+  {day:2, start:'11:10', end:'12:40', title:'ПО-252.2г', room:'406', week:0},
+  {day:2, start:'12:50', end:'14:20', title:'ПО-242.1г', room:'404', week:0},
+  {day:2, start:'12:50', end:'14:20', title:'ПО-242.3г', room:'404', week:0},
+  {day:2, start:'14:30', end:'16:00', title:'ПО-242.2г', room:'405', week:0},
+  {day:2, start:'16:05', end:'17:35', title:'БК-251.2/3г', room:'403', week:0},
+
+  {day:3, start:'08:00', end:'09:30', title:'ЕТ-251г', room:'122', week:1},
+  {day:3, start:'09:35', end:'11:05', title:'ПО-242.1г', room:'404', week:0},
+  {day:3, start:'11:10', end:'12:40', title:'ПО-242.3г', room:'211', week:0},
+  {day:3, start:'14:30', end:'16:00', title:'ВТ-252г', room:'416', week:0},
+  {day:3, start:'16:05', end:'17:35', title:'ПО-252.2г', room:'406', week:1},
+
+  {day:4, start:'08:00', end:'09:30', title:'ПО-242.1г/МТ-251г', room:'404', week:0},
+  {day:4, start:'11:10', end:'12:40', title:'ЕТ-251г', room:'122', week:0},
+  {day:4, start:'12:50', end:'14:20', title:'ВТ-252г', room:'416', week:0},
+  {day:4, start:'14:30', end:'16:00', title:'ПО-242.3г', room:'404', week:0},
+  {day:4, start:'16:05', end:'17:35', title:'ПО-252.2г', room:'406', week:0},
+];
+
+let schedule, notes, tasks;
+if(localStorage.getItem('schedule') === null){
+  schedule = SEED_SCHEDULE_RAW.map(s => ({ id: uid(), ...s }));
+  store.set('schedule', schedule);
+} else {
+  schedule = store.get('schedule').map(s => ({ week: 0, ...s }));
+}
+notes = store.get('notes');
+tasks = store.get('tasks');
+
+// ---------- helpers ----------
+const $ = (sel) => document.querySelector(sel);
+const pad = (n) => n.toString().padStart(2,'0');
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2000);
+}
+function fmtDate(d){
+  return d.toLocaleDateString('ru-RU', { day:'numeric', month:'long', weekday:'long' });
+}
+$('#todayLabel').textContent = fmtDate(new Date());
+function todayDayIndex(){
+  const js = new Date().getDay(); // 0=Sun..6=Sat
+  return js >= 1 && js <= 5 ? js - 1 : -1;
+}
+// which day the schedule view is currently showing — defaults to today (or Monday on weekends)
+let scheduleDay = todayDayIndex() === -1 ? 0 : todayDayIndex();
+
+// ---------- academic week parity (1-я / 2-я неделя) ----------
+// Anchored to the real university calendar (2026–2027 уч. год):
+// the week of Mon 31 Aug 2026 is "I", and weeks simply alternate I/II every single
+// week with no skips, all the way through the academic year.
+function mondayOfWeek(d){
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = dt.getUTCDay(); // 0=Sun..6=Sat
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  dt.setUTCDate(dt.getUTCDate() + diffToMonday);
+  return dt;
+}
+function autoCurrentWeek(){
+  const anchorMonday = new Date(Date.UTC(2026, 7, 31)); // Mon 31 Aug 2026 = week I
+  const monday = mondayOfWeek(new Date());
+  const daysDiff = Math.round((monday - anchorMonday) / 86400000);
+  const weeksSinceAnchor = Math.floor(daysDiff / 7);
+  const mod = ((weeksSinceAnchor % 2) + 2) % 2;
+  return mod === 0 ? 1 : 2;
+}
+function currentWeek(){
+  return autoCurrentWeek();
+}
+
+// ---------- tabs ----------
+const tabs = document.querySelectorAll('nav .tab');
+tabs.forEach(btn => btn.addEventListener('click', () => {
+  tabs.forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  $('#view-' + btn.dataset.view).classList.add('active');
+  currentView = btn.dataset.view;
+}));
+let currentView = 'schedule';
+
+// ---------- render: schedule (only the selected day, defaults to today) ----------
+function renderSchedule(){
+  const el = $('#view-schedule');
+  const today = todayDayIndex();
+  const now = new Date();
+
+  const dayTabs = `<div class="day-tabs">${DAY_SHORT.map((n,i) => `
+    <div class="day-tab${i===scheduleDay ? ' active' : ''}${i===today ? ' is-today' : ''}" data-day="${i}">${n}</div>`).join('')}</div>`;
+
+  const wk = currentWeek();
+  const chip = scheduleDay === today
+    ? `<div class="today-chip today-chip-accent">Сегодня — ${DAY_NAMES[today]}, ${now.getDate()} ${now.toLocaleDateString('ru-RU',{month:'long'})}</div>`
+    : `<div class="today-chip">${DAY_NAMES[scheduleDay]}${today === -1 ? ' · сегодня выходной' : ''}</div>`;
+  const weekChip = `<div class="week-chip">${wk}-я неделя</div>`;
+
+  let list = '';
+  SLOTS.forEach((slot, si) => {
+    const items = schedule.filter(s => s.day === scheduleDay && s.start === slot.start && (s.week === 0 || s.week === wk));
+    const timecol = `<div class="timecol2">${si+1}<br>${slot.start}<br>${slot.end}</div>`;
+    if(items.length === 0){
+      list += `<div class="day-slot empty-slot" data-day="${scheduleDay}" data-slot="${si}">${timecol}<div class="slot-body">Нет пары · нажми, чтобы добавить</div></div>`;
+    } else {
+      const inner = items.map(it => {
+        const weekTag = it.week ? `<span class="week-tag this-week">${it.week}-я нед.</span>` : '';
+        return `<div class="gitem"><div class="gtitle">${escapeHtml(it.title)} ${weekTag}</div>${it.room ? `<div class="groom">ауд. ${escapeHtml(it.room)}</div>` : ''}</div>`;
+      }).join('');
+      list += `<div class="day-slot" data-day="${scheduleDay}" data-slot="${si}">${timecol}<div class="slot-body">${inner}</div></div>`;
+    }
+  });
+
+  el.innerHTML = `${dayTabs}<div class="chip-row">${chip}${weekChip}</div>${list}`;
+
+  el.querySelectorAll('.day-tab').forEach(tab => tab.addEventListener('click', () => {
+    scheduleDay = Number(tab.dataset.day);
+    renderSchedule();
+  }));
+}
+
+function openSlotSheet(day, slotIdx){
+  const slot = SLOTS[slotIdx];
+  const items = schedule.filter(s => s.day === day && s.start === slot.start);
+  if(items.length === 0){
+    openEventForm(null, day, slot);
+    return;
+  }
+  sheet.innerHTML = `<h2>${DAY_NAMES[day]}, ${slot.start}–${slot.end}</h2>` +
+    items.map(it => `
+      <div class="slot-item" data-id="${it.id}">
+        <div class="content">
+          <div class="title">${escapeHtml(it.title)}${it.week ? ` <span class="week-tag ${it.week===currentWeek() ? 'this-week' : 'other-week'}">${it.week}-я нед.</span>` : ''}</div>
+          ${it.room ? `<div class="meta">ауд. ${escapeHtml(it.room)}</div>` : ''}
+        </div>
+        <button class="del-inline" data-id="${it.id}">×</button>
+      </div>`).join('') +
+    `<div class="sheet-actions"><button class="btn btn-secondary" id="f-add-more">+ Добавить ещё</button></div>`;
+  backdrop.classList.add('open');
+  sheet.querySelectorAll('.slot-item').forEach(row => row.addEventListener('click', (e) => {
+    if(e.target.closest('.del-inline')) return;
+    openEventForm(schedule.find(x => x.id === row.dataset.id), day, slot);
+  }));
+  sheet.querySelectorAll('.del-inline').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    schedule = schedule.filter(x => x.id !== btn.dataset.id);
+    store.set('schedule', schedule); renderSchedule(); closeSheet();
+  }));
+  $('#f-add-more').onclick = () => openEventForm(null, day, slot);
+}
+
+// ---------- render: notes ----------
+function renderNotes(){
+  const el = $('#view-notes');
+  const sorted = [...notes].sort((a,b) => b.updatedAt - a.updatedAt);
+  if(sorted.length === 0){
+    el.innerHTML = '<div class="empty">Заметок пока нет.<br>Нажми «+», чтобы написать первую.</div>';
+    return;
+  }
+  el.innerHTML = sorted.map(n => `
+    <div class="card" data-kind="notes" data-id="${n.id}">
+      <div class="content">
+        <div class="title">${escapeHtml(n.title || 'Без названия')}</div>
+        ${n.body ? `<div class="body">${escapeHtml(n.body)}</div>` : ''}
+      </div>
+      <button class="del" data-kind="notes" data-id="${n.id}">×</button>
+    </div>`).join('');
+}
+
+// ---------- render: tasks ----------
+function renderTasks(){
+  const el = $('#view-tasks');
+  const sorted = [...tasks].sort((a,b) => {
+    if(a.completed !== b.completed) return a.completed ? 1 : -1;
+    return (a.dueAt||'').localeCompare(b.dueAt||'');
+  });
+  if(sorted.length === 0){
+    el.innerHTML = '<div class="empty">Задач пока нет.<br>Нажми «+», чтобы добавить первую.</div>';
+    return;
+  }
+  el.innerHTML = sorted.map(t => {
+    const due = t.dueAt ? new Date(t.dueAt) : null;
+    const dueStr = due ? due.toLocaleString('ru-RU', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+    return `
+    <div class="card ${t.completed ? 'done' : ''}" data-kind="tasks" data-id="${t.id}">
+      <div class="check ${t.completed ? 'done' : ''}" data-action="toggle" data-id="${t.id}">${t.completed ? '✓' : ''}</div>
+      <span class="prio-dot prio-${t.priority}"></span>
+      <div class="content">
+        <div class="title">${escapeHtml(t.title)}</div>
+        ${dueStr ? `<div class="meta">${dueStr}</div>` : ''}
+      </div>
+      <button class="del" data-kind="tasks" data-id="${t.id}">×</button>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderAll(){ renderSchedule(); renderNotes(); renderTasks(); }
+renderAll();
+
+// ---------- click handling: delete / toggle / edit ----------
+document.addEventListener('click', (e) => {
+  const del = e.target.closest('.del');
+  if(del){
+    e.stopPropagation();
+    const { kind, id } = del.dataset;
+    if(kind === 'schedule'){ schedule = schedule.filter(x=>x.id!==id); store.set('schedule', schedule); renderSchedule(); }
+    if(kind === 'notes'){ notes = notes.filter(x=>x.id!==id); store.set('notes', notes); renderNotes(); }
+    if(kind === 'tasks'){ tasks = tasks.filter(x=>x.id!==id); store.set('tasks', tasks); renderTasks(); }
+    return;
+  }
+  const check = e.target.closest('.check');
+  if(check){
+    e.stopPropagation();
+    const id = check.dataset.id;
+    tasks = tasks.map(t => t.id === id ? {...t, completed: !t.completed} : t);
+    store.set('tasks', tasks); renderTasks();
+    return;
+  }
+  const card = e.target.closest('.card');
+  if(card){
+    const { kind, id } = card.dataset;
+    if(kind === 'notes'){ openNoteForm(notes.find(x=>x.id===id)); }
+    if(kind === 'tasks'){ openTaskForm(tasks.find(x=>x.id===id)); }
+    return;
+  }
+  const daySlot = e.target.closest('.day-slot');
+  if(daySlot){
+    openSlotSheet(Number(daySlot.dataset.day), Number(daySlot.dataset.slot));
+  }
+});
+
+// ---------- bottom sheet ----------
+const backdrop = $('#sheetBackdrop');
+const sheet = $('#sheet');
+function closeSheet(){ backdrop.classList.remove('open'); sheet.innerHTML = ''; }
+backdrop.addEventListener('click', (e) => { if(e.target === backdrop) closeSheet(); });
+
+$('#fabBtn').addEventListener('click', () => {
+  if(currentView === 'schedule') openEventForm(null, scheduleDay);
+  else if(currentView === 'notes') openNoteForm();
+  else openTaskForm();
+});
+
+function deleteBtnHtml(onclickFn){
+  return `<button type="button" class="btn btn-danger" id="f-delete">Удалить</button>`;
+}
+
+function openEventForm(item, presetDay, presetSlot){
+  const editing = !!item;
+  const dDay = editing ? item.day : (presetDay !== undefined ? presetDay : todayDayIndex());
+  const dStart = editing ? item.start : (presetSlot ? presetSlot.start : '09:00');
+  const dEnd = editing ? item.end : (presetSlot ? presetSlot.end : '10:30');
+  const dWeek = editing ? (item.week || 0) : 0;
+  sheet.innerHTML = `
+    <h2>${editing ? 'Изменить пару' : 'Новая пара'}</h2>
+    <div class="field"><label>Предмет / группа</label><input id="f-title" type="text" value="${editing ? escapeHtml(item.title) : ''}" placeholder="Например, ПО-242.1г"></div>
+    <div class="field"><label>День недели</label>
+      <select id="f-day">
+        ${DAY_NAMES.map((n,i) => `<option value="${i}" ${dDay===i ? 'selected' : ''}>${n}</option>`).join('')}
+      </select>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Начало</label><input id="f-start" type="time" value="${dStart}"></div>
+      <div class="field"><label>Конец</label><input id="f-end" type="time" value="${dEnd}"></div>
+    </div>
+    <div class="field"><label>Аудитория (необязательно)</label><input id="f-room" type="text" value="${editing ? escapeHtml(item.room||'') : ''}"></div>
+    <div class="field"><label>Неделя</label>
+      <select id="f-week">
+        <option value="0" ${dWeek===0 ? 'selected' : ''}>Каждую неделю</option>
+        <option value="1" ${dWeek===1 ? 'selected' : ''}>Только 1-я неделя</option>
+        <option value="2" ${dWeek===2 ? 'selected' : ''}>Только 2-я неделя</option>
+      </select>
+    </div>
+    <div class="sheet-actions">
+      ${editing ? deleteBtnHtml() : '<button class="btn btn-secondary" id="f-cancel">Отмена</button>'}
+      <button class="btn btn-primary" id="f-save">Сохранить</button>
+    </div>`;
+  backdrop.classList.add('open');
+  if($('#f-cancel')) $('#f-cancel').onclick = closeSheet;
+  if($('#f-delete')) $('#f-delete').onclick = () => {
+    schedule = schedule.filter(x=>x.id!==item.id); store.set('schedule', schedule); renderSchedule(); closeSheet();
+  };
+  $('#f-save').onclick = () => {
+    const title = $('#f-title').value.trim();
+    if(!title){ toast('Введи предмет или группу'); return; }
+    const data = { title, day: Number($('#f-day').value), start: $('#f-start').value, end: $('#f-end').value, room: $('#f-room').value.trim(), week: Number($('#f-week').value) };
+    if(editing){
+      schedule = schedule.map(x => x.id === item.id ? {...x, ...data} : x);
+    } else {
+      schedule.push({ id: uid(), ...data });
+    }
+    store.set('schedule', schedule); renderSchedule(); closeSheet();
+  };
+}
+
+function openNoteForm(item){
+  const editing = !!item;
+  sheet.innerHTML = `
+    <h2>${editing ? 'Изменить заметку' : 'Новая заметка'}</h2>
+    <div class="field"><label>Заголовок</label><input id="f-title" type="text" value="${editing ? escapeHtml(item.title) : ''}"></div>
+    <div class="field"><label>Текст</label><textarea id="f-body" rows="5">${editing ? escapeHtml(item.body) : ''}</textarea></div>
+    <div class="sheet-actions">
+      ${editing ? deleteBtnHtml() : '<button class="btn btn-secondary" id="f-cancel">Отмена</button>'}
+      <button class="btn btn-primary" id="f-save">Сохранить</button>
+    </div>`;
+  backdrop.classList.add('open');
+  if($('#f-cancel')) $('#f-cancel').onclick = closeSheet;
+  if($('#f-delete')) $('#f-delete').onclick = () => {
+    notes = notes.filter(x=>x.id!==item.id); store.set('notes', notes); renderNotes(); closeSheet();
+  };
+  $('#f-save').onclick = () => {
+    const title = $('#f-title').value.trim();
+    const body = $('#f-body').value.trim();
+    if(!title && !body){ toast('Заметка пустая'); return; }
+    if(editing){
+      notes = notes.map(x => x.id === item.id ? {...x, title, body, updatedAt: Date.now()} : x);
+    } else {
+      notes.push({ id: uid(), title, body, updatedAt: Date.now() });
+    }
+    store.set('notes', notes); renderNotes(); closeSheet();
+  };
+}
+
+function openTaskForm(item){
+  const editing = !!item;
+  let localVal;
+  if(editing && item.dueAt){
+    const d = new Date(item.dueAt);
+    localVal = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } else {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 30 - now.getMinutes()%30, 0, 0);
+    localVal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  }
+  sheet.innerHTML = `
+    <h2>${editing ? 'Изменить задачу' : 'Новая задача'}</h2>
+    <div class="field"><label>Что нужно сделать</label><input id="f-title" type="text" value="${editing ? escapeHtml(item.title) : ''}"></div>
+    <div class="field"><label>Срок (необязательно)</label><input id="f-due" type="datetime-local" value="${localVal}"></div>
+    <div class="field">
+      <label>Приоритет</label>
+      <div class="prio-choice">
+        <button type="button" data-p="low" class="${(!editing && 'low'==='med') || (editing && item.priority==='low') ? 'sel' : ''}">Низкий</button>
+        <button type="button" data-p="med" class="${(!editing) || (editing && item.priority==='med') ? 'sel' : ''}">Средний</button>
+        <button type="button" data-p="high" class="${(editing && item.priority==='high') ? 'sel' : ''}">Высокий</button>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      ${editing ? deleteBtnHtml() : '<button class="btn btn-secondary" id="f-cancel">Отмена</button>'}
+      <button class="btn btn-primary" id="f-save">Сохранить</button>
+    </div>`;
+  backdrop.classList.add('open');
+  let priority = editing ? item.priority : 'med';
+  sheet.querySelectorAll('.prio-choice button').forEach(b => b.addEventListener('click', () => {
+    sheet.querySelectorAll('.prio-choice button').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel'); priority = b.dataset.p;
+  }));
+  if($('#f-cancel')) $('#f-cancel').onclick = closeSheet;
+  if($('#f-delete')) $('#f-delete').onclick = () => {
+    tasks = tasks.filter(x=>x.id!==item.id); store.set('tasks', tasks); renderTasks(); closeSheet();
+  };
+  $('#f-save').onclick = () => {
+    const title = $('#f-title').value.trim();
+    if(!title){ toast('Введи название задачи'); return; }
+    const dueVal = $('#f-due').value;
+    const dueAt = dueVal ? new Date(dueVal).toISOString() : null;
+    if(editing){
+      tasks = tasks.map(x => x.id === item.id ? {...x, title, priority, dueAt, notified: (x.dueAt !== dueAt) ? false : x.notified} : x);
+    } else {
+      tasks.push({ id: uid(), title, priority, completed: false, notified: false, dueAt });
+    }
+    store.set('tasks', tasks); renderTasks(); closeSheet();
+  };
+}
+
+// ---------- notifications ----------
+let swReg = null;
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(reg => { swReg = reg; }).catch(()=>{});
+}
+function updateBell(){
+  const on = 'Notification' in window && Notification.permission === 'granted';
+  $('#bellBtn').classList.toggle('on', on);
+}
+updateBell();
+$('#bellBtn').addEventListener('click', async () => {
+  if(!('Notification' in window)){ toast('Уведомления не поддерживаются в этом браузере'); return; }
+  if(Notification.permission === 'granted'){ toast('Уведомления уже включены'); return; }
+  const perm = await Notification.requestPermission();
+  updateBell();
+  if(perm === 'granted') toast('Уведомления включены');
+  else toast('Разрешение не выдано');
+});
+
+function notify(title, body){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  if(swReg && swReg.showNotification){
+    swReg.showNotification(title, { body, icon: 'icon-192.png', badge: 'icon-192.png' });
+  } else {
+    new Notification(title, { body, icon: 'icon-192.png' });
+  }
+}
+
+function checkDueTasks(){
+  const now = Date.now();
+  let changed = false;
+  tasks = tasks.map(t => {
+    if(!t.completed && !t.notified && t.dueAt){
+      const due = new Date(t.dueAt).getTime();
+      if(due <= now && now - due < 15*60*1000){
+        notify('Пора: ' + t.title, t.dueAt ? new Date(t.dueAt).toLocaleString('ru-RU') : '');
+        changed = true;
+        return {...t, notified: true};
+      }
+    }
+    return t;
+  });
+  if(changed){ store.set('tasks', tasks); if(currentView==='tasks') renderTasks(); }
+}
+setInterval(checkDueTasks, 20000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden) checkDueTasks(); });
+checkDueTasks();
+</script>
+</body>
+</html>
