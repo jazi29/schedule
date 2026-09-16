@@ -1,6 +1,6 @@
 {
-  "name": "Мой день",
-  "short_name": "Мой день",
+  "name": "Schedule",
+  "short_name": "Schedule",
   "description": "Расписание, заметки и задачи с напоминаниями",
   "start_url": "./index.html",
   "scope": "./",
@@ -9,7 +9,9 @@
   "background_color": "#0D0D0F",
   "theme_color": "#0D0D0F",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

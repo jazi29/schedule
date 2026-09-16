@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>Мой день</title>
+<title>Schedule</title>
 
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#0D0D0F">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Мой день">
+<meta name="apple-mobile-web-app-title" content="Schedule">
 
 <style>
   :root{
@@ -100,7 +100,13 @@
   .hero-stat.streak{ color:var(--amber); background:var(--amber-soft); border-color:rgba(224,185,106,0.3); }
   .hero-stat.due{ color:var(--coral); background:var(--coral-soft); border-color:rgba(224,133,133,0.3); }
 
-  main{ flex:1; overflow-y:auto; overflow-x:hidden; padding: 0 16px calc(112px + var(--safe-bottom)); -webkit-overflow-scrolling:touch; }
+  main{ flex:1; overflow-y:auto; overflow-x:hidden; padding: 0 16px calc(126px + var(--safe-bottom)); -webkit-overflow-scrolling:touch; }
+
+  .fade-bottom{
+    position:fixed; left:0; right:0; bottom:0; height: calc(140px + var(--safe-bottom));
+    pointer-events:none; z-index:4;
+    background: linear-gradient(to bottom, rgba(13,13,15,0) 0%, rgba(13,13,15,0.55) 45%, rgba(13,13,15,0.92) 100%);
+  }
   .view{ display:none; }
   .view.active{ display:block; }
 
@@ -242,12 +248,12 @@
 
   nav{
     position:fixed; left:12px; right:12px; bottom: calc(10px + var(--safe-bottom));
-    border-radius:26px; display:flex; padding: 8px 10px;
-    background: var(--glass-bg-strong);
+    border-radius:26px; display:flex; padding: 8px 10px; z-index:6;
+    background: rgba(24,24,27,0.88);
     -webkit-backdrop-filter: blur(30px) saturate(180%);
     backdrop-filter: blur(30px) saturate(180%);
     border:1px solid var(--glass-border);
-    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 12px 30px rgba(0,0,0,0.4);
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 12px 30px rgba(0,0,0,0.5);
   }
   nav button{
     flex:1; background:none; border:none; display:flex; flex-direction:column;
@@ -259,8 +265,8 @@
   nav svg{ width:21px; height:21px; }
 
   .fab{
-    position:fixed; right:20px; bottom: calc(90px + var(--safe-bottom));
-    width:56px; height:56px; border-radius:50%;
+    position:fixed; right:20px; bottom: calc(96px + var(--safe-bottom));
+    width:56px; height:56px; border-radius:50%; z-index:6;
     color:#0D0D0F; border:none; font-size:26px; line-height:1;
     display:flex; align-items:center; justify-content:center;
     cursor:pointer;
@@ -355,6 +361,8 @@
 </main>
 
 <button class="fab" id="fabBtn" aria-label="Добавить">+</button>
+
+<div class="fade-bottom"></div>
 
 <nav>
   <button class="tab active" data-view="schedule">
