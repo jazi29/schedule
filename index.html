@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#0D0D0F">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Schedule">
 
@@ -327,6 +328,24 @@
   .btn-secondary{ background:rgba(255,255,255,0.06); color:var(--ink-soft); border:1px solid var(--glass-border); }
   .btn-danger{ background:var(--coral-soft); color:var(--coral); }
 
+  .a2hs{
+    display:none; align-items:flex-start; gap:10px;
+    margin: 0 0 14px; padding:13px 14px; border-radius:16px;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: blur(22px) saturate(180%);
+    border:1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .a2hs.show{ display:flex; }
+  .a2hs .a2hs-icon{ font-size:20px; line-height:1; flex-shrink:0; margin-top:1px; }
+  .a2hs .a2hs-txt{ flex:1; font-size:12.5px; color:var(--ink-soft); line-height:1.5; }
+  .a2hs .a2hs-txt b{ color:var(--ink); font-weight:600; }
+  .a2hs-close{
+    border:none; background:none; color:var(--ink-soft); font-size:16px;
+    width:22px; height:22px; flex-shrink:0; cursor:pointer; border-radius:8px;
+  }
+
   .toast{
     position:fixed; top: calc(14px + var(--safe-top)); left:50%; transform:translateX(-50%);
     color:var(--ink); padding:10px 18px; border-radius:20px;
@@ -353,6 +372,12 @@
     </div>
     <div class="hero-status" id="heroStatus"></div>
     <div class="hero-stats" id="heroStats"></div>
+  </div>
+
+  <div class="a2hs" id="a2hsBanner">
+    <div class="a2hs-icon">⬆️</div>
+    <div class="a2hs-txt"><b>Установи как приложение:</b> нажми «Поделиться» внизу Safari, затем «На экран «Домой»». Так уведомления будут работать.</div>
+    <button class="a2hs-close" id="a2hsClose">×</button>
   </div>
 
   <section class="view active" id="view-schedule"></section>
@@ -892,6 +917,23 @@ function openTaskForm(item){
   };
 }
 
+// ---------- iOS home-screen / standalone detection ----------
+// iOS Safari has no beforeinstallprompt, and Notification/Push only works
+// once the app is actually added to the Home Screen (iOS 16.4+), so we
+// detect both and steer the user accordingly instead of failing silently.
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS reports as Mac
+const isStandalone = window.navigator.standalone === true ||
+  window.matchMedia('(display-mode: standalone)').matches;
+
+if(isIOS && !isStandalone && localStorage.getItem('a2hsDismissed') !== '1'){
+  $('#a2hsBanner').classList.add('show');
+}
+$('#a2hsClose').addEventListener('click', () => {
+  $('#a2hsBanner').classList.remove('show');
+  localStorage.setItem('a2hsDismissed', '1');
+});
+
 // ---------- notifications ----------
 let swReg = null;
 if('serviceWorker' in navigator){
@@ -903,8 +945,14 @@ function updateBell(){
 }
 updateBell();
 $('#bellBtn').addEventListener('click', async () => {
+  if(isIOS && !isStandalone){
+    toast('Сначала установи приложение: «Поделиться» → «На экран «Домой»»');
+    $('#a2hsBanner').classList.add('show');
+    return;
+  }
   if(!('Notification' in window)){ toast('Уведомления не поддерживаются в этом браузере'); return; }
   if(Notification.permission === 'granted'){ toast('Уведомления уже включены'); return; }
+  if(Notification.permission === 'denied'){ toast('Уведомления заблокированы в настройках'); return; }
   const perm = await Notification.requestPermission();
   updateBell();
   if(perm === 'granted') toast('Уведомления включены');
