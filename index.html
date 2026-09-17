@@ -557,7 +557,8 @@ function renderHero(){
     if(current){
       statusClass = 'now';
       const names = current.items.map(i => i.title).join(', ');
-      html = `<div class="dot"></div><div class="txt">Сейчас: <b>${escapeHtml(names)}</b> · до ${current.slot.end}</div>`;
+      const leftMin = timeToMinutes(current.slot.end) - nowMin;
+      html = `<div class="dot"></div><div class="txt">Сейчас: <b>${escapeHtml(names)}</b> · до ${current.slot.end} · ещё ${leftMin} мин</div>`;
     } else if(next){
       statusClass = 'next';
       const mins = timeToMinutes(next.slot.start) - nowMin;
