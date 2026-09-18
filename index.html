@@ -44,8 +44,8 @@
     --safe-top: env(safe-area-inset-top, 0px);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;}
-  html{ color-scheme: dark; }
-  html,body{margin:0; padding:0; height:100%; overscroll-behavior-y: none;}
+  html{ color-scheme: dark; background:#0D0D0F; height:100%; overflow:hidden; }
+  html,body{margin:0; padding:0; height:100%; overscroll-behavior:none; overflow:hidden;}
   body{
     background:var(--paper);
     color:var(--ink);
@@ -1016,7 +1016,7 @@ $('#bellBtn').addEventListener('click', async () => {
 function notify(title, body){
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
   if(swReg && swReg.showNotification){
-    swReg.showNotification(title, { body, icon: 'icon-192.png', badge: 'icon-192.png' });
+    swReg.showNotification(title, { body, icon: 'icon-192.png', badge: 'icon-192.png', vibrate: [80,40,80] });
   } else {
     new Notification(title, { body, icon: 'icon-192.png' });
   }
