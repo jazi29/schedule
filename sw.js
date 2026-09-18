@@ -1,5 +1,9 @@
-const CACHE_NAME = 'schedule-v9';
-const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_NAME = 'schedule-v10';
+const ASSETS = [
+  './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
+  './apple-splash-1179-2556.png', './apple-splash-1206-2622.png',
+  './apple-splash-1290-2796.png', './apple-splash-1320-2868.png'
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
