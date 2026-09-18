@@ -107,7 +107,7 @@
   }
   .hero-stat.due{ color:var(--coral); background:var(--coral-soft); border-color:rgba(224,133,133,0.3); }
 
-  main{ flex:1; overflow-y:auto; overflow-x:hidden; padding: 0 16px 140px; -webkit-overflow-scrolling:touch; }
+  main{ flex:1; overflow-y:auto; overflow-x:hidden; padding: 0 16px calc(140px + var(--safe-bottom)); -webkit-overflow-scrolling:touch; }
 
   .fade-bottom{
     position:fixed; left:0; right:0; bottom:0; height: 160px;
@@ -211,6 +211,16 @@
   .slot-item .content{ flex:1; min-width:0; }
   .del-inline{ border:none; background:none; color:var(--ink-soft); font-size:18px; width:24px; height:24px; cursor:pointer; flex-shrink:0; }
 
+  .sched-header{
+    position: sticky; top: var(--hero-h, 0px); z-index:4;
+    margin: 0 0 10px; padding: 10px 12px 12px;
+    border-radius: 20px;
+    background: var(--glass-bg-strong);
+    -webkit-backdrop-filter: blur(26px) saturate(180%);
+    backdrop-filter: blur(26px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 6px 18px rgba(0,0,0,0.22);
+  }
   .day-tabs{ display:flex; gap:6px; margin-bottom:12px; }
   .day-tab{
     flex:1; text-align:center; font-size:12.5px; font-weight:500; color:var(--ink-soft);
@@ -222,6 +232,7 @@
   .day-tab.active{ color:#0D0D0F; background: rgba(124,147,224,0.9); border-color: rgba(124,147,224,0.9); font-weight:700; }
 
   .chip-row{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+  .sched-header .chip-row{ margin-bottom:0; }
   .week-chip{
     display:block; width:100%; box-sizing:border-box; font-size:13px; color:var(--ink-soft); font-weight:500;
     padding:10px 16px; border-radius:16px;
@@ -280,15 +291,19 @@
     .day-slot .timecol2{ width:44px; font-size:10px; }
     .day-slot .gtitle{ font-size:13.5px; }
     .day-slot .groom{ font-size:11px; }
+    .row2{ flex-direction:column; gap:12px; }
+    .row2 .field{ width:100%; }
+    .row2 input{ width:100%; }
   }
   @media (max-width: 340px){
     .day-tab{ font-size:10px; }
     .day-slot .timecol2{ width:38px; font-size:9px; }
+    .field input, .field select{ font-size:14px; padding:10px 10px; }
   }
 
   nav{
     position:fixed; left:0; right:0; bottom:0;
-    border-radius:24px 24px 0 0; display:flex; padding: 10px 14px 10px; z-index:6;
+    border-radius:24px 24px 0 0; display:flex; padding: 10px 14px calc(10px + var(--safe-bottom)); z-index:6;
     background: rgba(24,24,27,0.88);
     -webkit-backdrop-filter: blur(30px) saturate(180%);
     backdrop-filter: blur(30px) saturate(180%);
@@ -305,7 +320,7 @@
   nav svg{ width:21px; height:21px; }
 
   .fab{
-    position:fixed; right:18px; bottom: 84px;
+    position:fixed; right:18px; bottom: calc(84px + var(--safe-bottom));
     width:56px; height:56px; border-radius:50%;
     color:#0D0D0F; border:none; font-size:26px; line-height:1;
     display:flex; align-items:center; justify-content:center;
@@ -620,6 +635,7 @@ function renderHero(){
   let stats = '';
   if(dueToday > 0) stats += `<div class="hero-stat due">⏰ ${dueToday} ${ruPlural(dueToday,'задача','задачи','задач')} на сегодня</div>`;
   $('#heroStats').innerHTML = stats;
+  syncHeroOffset();
 }
 
 // ---------- tabs ----------
@@ -680,13 +696,14 @@ function renderSchedule(){
     }
   });
 
-  el.innerHTML = `${dayTabs}<div class="chip-row">${weekChip}</div>${list}`;
+  el.innerHTML = `<div class="sched-header">${dayTabs}<div class="chip-row">${weekChip}</div></div>${list}`;
 
   el.querySelectorAll('.day-tab').forEach(tab => tab.addEventListener('click', () => {
     haptic();
     scheduleDay = Number(tab.dataset.day);
     renderSchedule();
   }));
+  syncHeroOffset();
 }
 
 function openSlotSheet(day, slotIdx){
@@ -768,9 +785,19 @@ function escapeHtml(s){
   return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-function renderAll(){ renderHero(); renderSchedule(); renderNotes(); renderTasks(); }
+// keep the sticky schedule header (day tabs + week chip) pinned exactly below
+// the hero card, whose height can vary (greeting length, due-tasks chip, etc.)
+function syncHeroOffset(){
+  const hero = $('#hero');
+  if(!hero) return;
+  document.documentElement.style.setProperty('--hero-h', hero.offsetHeight + 'px');
+}
+window.addEventListener('resize', syncHeroOffset);
+window.addEventListener('orientationchange', () => setTimeout(syncHeroOffset, 150));
+
+function renderAll(){ renderHero(); renderSchedule(); renderNotes(); renderTasks(); syncHeroOffset(); }
 renderAll();
-setInterval(() => { renderHero(); if(currentView === 'schedule') renderSchedule(); }, 30000);
+setInterval(() => { renderHero(); if(currentView === 'schedule') renderSchedule(); syncHeroOffset(); }, 30000);
 
 // ---------- click handling: delete / toggle / edit ----------
 document.addEventListener('click', (e) => {
