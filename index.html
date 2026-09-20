@@ -46,14 +46,14 @@
     --nav-bottom: max(calc(var(--safe-bottom) - 14px), 2px);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;}
-  html{ color-scheme: dark; background:#0D0D0F; height:100%; overflow:hidden; }
+  html{ color-scheme: dark; background:#0D0D0F; position:fixed; inset:0; width:100%; height:100%; overflow:hidden; }
   html,body{margin:0; padding:0; height:100%; width:100%; max-width:100%; overscroll-behavior:none; overflow:hidden; overflow-x:hidden; }
   body{
     background:var(--paper);
     color:var(--ink);
     font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    display:flex; flex-direction:column; height:100vh; height:100dvh;
-    position:relative; user-select:none;
+    display:flex; flex-direction:column;
+    position:fixed; inset:0; user-select:none;
   }
   input, textarea{ user-select:text; -webkit-user-select:text; }
   body::before{
@@ -314,6 +314,7 @@
     border:1px solid var(--glass-border); border-bottom:none;
     box-shadow: inset 0 1px 0 var(--glass-highlight), 0 -6px 24px rgba(0,0,0,0.35);
   }
+  nav::after{ content:''; position:absolute; left:-1px; right:-1px; top:100%; height:300px; background:rgba(24,24,27,0.98); pointer-events:none; }
   nav button{
     flex:1; background:none; border:none; display:flex; flex-direction:column;
     align-items:center; gap:4px; color:var(--ink-soft); font-size:11px; font-weight:500;
