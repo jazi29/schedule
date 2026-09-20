@@ -487,17 +487,26 @@
 (function(){
   const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
   if(!standalone) return;
+  const root = document.documentElement;
+  function typing(){ const a = document.activeElement; return a && /INPUT|TEXTAREA|SELECT/.test(a.tagName); }
   function fit(){
-    const root = document.documentElement;
-    root.classList.remove('tall');
+    if(typing()) return;
     const diff = screen.height - window.innerHeight;
-    if(diff > 1 && diff < 140){
+    if(diff > 1 && diff < 200){
       root.style.setProperty('--app-h', screen.height + 'px');
       root.classList.add('tall');
+    } else {
+      root.classList.remove('tall');
     }
   }
-  fit();
-  window.addEventListener('resize', () => { if(!document.activeElement || !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) fit(); });
+  // on a cold start iOS reports the wrong size for a moment, so keep re-checking for a few seconds
+  function burst(){ fit(); let n = 0; const t = setInterval(() => { fit(); if(++n >= 20) clearInterval(t); }, 200); }
+  burst();
+  window.addEventListener('load', burst);
+  window.addEventListener('pageshow', burst);
+  window.addEventListener('focus', burst);
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) burst(); });
+  window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', () => setTimeout(fit, 300));
 })();
 </script>
@@ -623,6 +632,7 @@ function autoCurrentWeek(){
 function currentWeek(){
   return autoCurrentWeek();
 }
+let viewWeek = null; // null = follow the real current week
 
 // ---------- render: hero (replaces the old static header) ----------
 function renderHero(){
@@ -710,8 +720,9 @@ function renderSchedule(){
   const dayTabs = `<div class="day-tabs">${DAY_SHORT.map((n,i) => `
     <div class="day-tab${i===scheduleDay ? ' active' : ''}${i===today ? ' is-today' : ''}" data-day="${i}">${n}</div>`).join('')}</div>`;
 
-  const wk = currentWeek();
-  const weekChip = `<div class="week-chip">${wk}-я неделя</div>`;
+  const wk = viewWeek || currentWeek();
+  const isCur = wk === currentWeek();
+  const weekChip = `<div class="week-chip" id="weekChip" style="cursor:pointer">${wk}-я неделя${isCur ? '' : ' · не текущая'} <span style="opacity:.6;float:right">⇄ ${wk === 1 ? 2 : 1}-я</span></div>`;
 
   let list = '';
   const nowMin = now.getHours()*60 + now.getMinutes();
@@ -733,6 +744,12 @@ function renderSchedule(){
   $('#schedHeader').innerHTML = `${dayTabs}<div class="chip-row">${weekChip}</div>`;
   el.innerHTML = list;
 
+  $('#weekChip').addEventListener('click', () => {
+    haptic();
+    const next = (viewWeek || currentWeek()) === 1 ? 2 : 1;
+    viewWeek = (next === currentWeek()) ? null : next;
+    renderSchedule();
+  });
   $('#schedHeader').querySelectorAll('.day-tab').forEach(tab => tab.addEventListener('click', () => {
     haptic();
     scheduleDay = Number(tab.dataset.day);
