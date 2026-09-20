@@ -19,6 +19,18 @@
 <link rel="apple-touch-startup-image" href="apple-splash-1290-2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)">
 <link rel="apple-touch-startup-image" href="apple-splash-1320-2868.png" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)">
 
+<script>
+// Standalone (home-screen) mode: fix the app height ONCE to the real screen height so there is
+// never a black strip under the tab bar. Runs before first paint and never toggles afterwards.
+(function(){
+  var standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  if(!standalone) return;
+  var h = Math.max(screen.height, screen.width);
+  var root = document.documentElement;
+  root.style.setProperty('--app-h', h + 'px');
+  root.classList.add('tall');
+})();
+</script>
 <style>
   :root{
     --paper:#0D0D0F;
@@ -482,34 +494,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script>
-// fill the whole screen in iOS standalone mode (no black strip under the tab bar)
-(function(){
-  const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
-  if(!standalone) return;
-  const root = document.documentElement;
-  function typing(){ const a = document.activeElement; return a && /INPUT|TEXTAREA|SELECT/.test(a.tagName); }
-  function fit(){
-    if(typing()) return;
-    const diff = screen.height - window.innerHeight;
-    if(diff > 1 && diff < 200){
-      root.style.setProperty('--app-h', screen.height + 'px');
-      root.classList.add('tall');
-    } else {
-      root.classList.remove('tall');
-    }
-  }
-  // on a cold start iOS reports the wrong size for a moment, so keep re-checking for a few seconds
-  function burst(){ fit(); let n = 0; const t = setInterval(() => { fit(); if(++n >= 20) clearInterval(t); }, 200); }
-  burst();
-  window.addEventListener('load', burst);
-  window.addEventListener('pageshow', burst);
-  window.addEventListener('focus', burst);
-  document.addEventListener('visibilitychange', () => { if(!document.hidden) burst(); });
-  window.addEventListener('resize', fit);
-  window.addEventListener('orientationchange', () => setTimeout(fit, 300));
-})();
-</script>
 <script>
 // ---------- storage ----------
 const store = {
