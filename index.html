@@ -230,6 +230,18 @@
   .slot-item .content{ flex:1; min-width:0; }
   .del-inline{ border:none; background:none; color:var(--ink-soft); font-size:18px; width:24px; height:24px; cursor:pointer; flex-shrink:0; }
 
+
+  .photo-btn{ border:none; background:none; color:var(--ink-soft); width:28px; height:24px; padding:0; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; opacity:.55; }
+  .photo-btn.has{ color:#7C93E0; opacity:1; }
+  .photo-btn svg{ width:20px; height:20px; }
+  .photo-viewer{ position:absolute; inset:0; z-index:50; display:none; flex-direction:column; background:rgba(0,0,0,0.94); }
+  .photo-viewer.open{ display:flex; }
+  .photo-viewer .pv-x{ position:absolute; top:calc(var(--safe-top) + 10px); right:14px; z-index:2; border:none; background:rgba(255,255,255,0.16); color:#fff; width:40px; height:40px; border-radius:50%; font-size:24px; line-height:1; cursor:pointer; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+  .photo-viewer .pv-img{ position:absolute; left:0; right:0; top:calc(var(--safe-top) + 60px); bottom:calc(var(--safe-bottom) + 12px); overflow:hidden; }
+  .photo-viewer .pv-img img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; }
+  .photo-viewer .pv-img.zoom{ overflow:auto; -webkit-overflow-scrolling:touch; }
+  .photo-viewer .pv-img.zoom img{ position:static; width:260%; height:auto; max-width:none; object-fit:initial; }
+
   .sched-header{
     z-index:4;
     margin: 0 0 10px; padding: 10px 12px 12px;
@@ -492,6 +504,10 @@
   <div class="sheet" id="sheet"></div>
 </div>
 
+<div class="photo-viewer" id="photoViewer">
+  <button class="pv-x" id="pvClose" aria-label="Закрыть">×</button>
+  <div class="pv-img" id="pvImg"></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -695,6 +711,40 @@ tabs.forEach(btn => btn.addEventListener('click', () => { haptic(); switchToView
   }, { passive:true });
 })();
 
+// ---------- group photos: files in ./photos/, mapped by group name ----------
+// key = group name in lower case, value = path to the picture
+const GROUP_PHOTOS = {
+  'по-252.2г': 'photos/po-252-2g.jpg',
+  'по-252.1г': 'photos/po-252-1g.jpg',
+  'пи-252.1г': 'photos/pi-252-1g.jpg',
+  'бк-251.1г': 'photos/bk-251-1g.jpg',
+  'вт-252г': 'photos/vt-252g.jpg',
+  'бк-251.2/3г': 'photos/bk-251-2-3g.jpg',
+  'ет-251г': 'photos/et-251g.jpg',
+  'пс-262г': 'photos/ps-262g.jpg',
+  'по-242.3г': 'photos/po-242-3g.jpg',
+  'по-242.1г': 'photos/po-242-1g.jpg',
+  'по-242.1г/мт-251г': 'photos/po-242-1g.jpg',
+  'по-242.2г': 'photos/po-242-2g.jpg',
+};
+const photoKey = t => String(t || '').trim().toLowerCase();
+function showPhoto(key){
+  const src = GROUP_PHOTOS[key];
+  if(!src) return;
+  $('#pvImg').innerHTML = '<img alt="">';
+  const img = $('#pvImg img');
+  img.onerror = () => { closePhoto(); toast('Фото не найдено: загрузи папку photos на сервер'); };
+  img.src = src;
+  $('#photoViewer').classList.add('open');
+}
+function closePhoto(){ $('#photoViewer').classList.remove('open'); $('#pvImg').classList.remove('zoom'); $('#pvImg').innerHTML = ''; }
+$('#pvClose').onclick = closePhoto;
+$('#pvImg').addEventListener('click', e => {
+  if(e.target.tagName === 'IMG'){ $('#pvImg').classList.toggle('zoom'); return; }
+  if(e.target.id === 'pvImg') closePhoto();
+});
+const PHOTO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>';
+
 // ---------- render: schedule (only the selected day, defaults to today) ----------
 function renderSchedule(){
   const el = $('#view-schedule');
@@ -755,13 +805,18 @@ function openSlotSheet(day, slotIdx){
           <div class="title">${escapeHtml(it.title)}${it.week ? ` <span class="week-tag ${it.week===currentWeek() ? 'this-week' : 'other-week'}">${it.week}-я нед.</span>` : ''}</div>
           ${it.room ? `<div class="meta">ауд. ${escapeHtml(it.room)}</div>` : ''}
         </div>
+        ${GROUP_PHOTOS[photoKey(it.title)] ? `<button class="photo-btn has" data-key="${escapeHtml(photoKey(it.title))}" aria-label="Фото">${PHOTO_ICON}</button>` : ''}
         <button class="del-inline" data-id="${it.id}">×</button>
       </div>`).join('') +
     `<div class="sheet-actions"><button class="btn btn-secondary" id="f-add-more">+ Добавить ещё</button></div>`;
   backdrop.classList.add('open');
   sheet.querySelectorAll('.slot-item').forEach(row => row.addEventListener('click', (e) => {
-    if(e.target.closest('.del-inline')) return;
+    if(e.target.closest('.del-inline') || e.target.closest('.photo-btn')) return;
     openEventForm(schedule.find(x => x.id === row.dataset.id), day, slot);
+  }));
+  sheet.querySelectorAll('.photo-btn').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation(); haptic();
+    showPhoto(btn.dataset.key);
   }));
   sheet.querySelectorAll('.del-inline').forEach(btn => btn.addEventListener('click', (e) => {
     e.stopPropagation();

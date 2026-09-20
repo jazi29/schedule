@@ -1,13 +1,16 @@
-const CACHE_NAME = 'schedule-v23';
+const CACHE_NAME = 'schedule-v27';
 const ASSETS = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
   './apple-splash-1179-2556.png', './apple-splash-1206-2622.png',
-  './apple-splash-1290-2796.png', './apple-splash-1320-2868.png'
+  './apple-splash-1290-2796.png', './apple-splash-1320-2868.png',
+  './photos/po-252-2g.jpg', './photos/po-252-1g.jpg', './photos/pi-252-1g.jpg', './photos/bk-251-1g.jpg',
+  './photos/vt-252g.jpg', './photos/bk-251-2-3g.jpg', './photos/et-251g.jpg', './photos/ps-262g.jpg',
+  './photos/po-242-3g.jpg', './photos/po-242-1g.jpg', './photos/po-242-2g.jpg'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => Promise.all(ASSETS.map((a) => cache.add(a).catch(() => null)))).then(() => self.skipWaiting())
   );
 });
 
