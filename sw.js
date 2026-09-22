@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schedule-v27';
+const CACHE_NAME = 'schedule-v28';
 const ASSETS = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
   './apple-splash-1179-2556.png', './apple-splash-1206-2622.png',
