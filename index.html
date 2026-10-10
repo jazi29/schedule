@@ -309,6 +309,17 @@
   }
   .day-slot.now .timecol2{ color:var(--sage); }
   .day-slot.now .gtitle{ color:var(--ink); font-weight:600; }
+  /* ---- progress of the current lesson: the whole card fills with green ---- */
+  .day-slot.now{ overflow:hidden; }
+  .day-slot .slot-fill{
+    position:absolute; left:0; top:0; bottom:0; z-index:0; pointer-events:none;
+    background:linear-gradient(90deg, rgba(132,176,139,0.20), rgba(132,176,139,0.42));
+    border-right:2px solid rgba(132,176,139,0.9);
+    box-shadow:6px 0 18px rgba(132,176,139,0.35);
+    transition:width .6s ease;
+  }
+  .day-slot.now .timecol2, .day-slot.now .slot-body{ position:relative; z-index:1; }
+  .day-slot.now::before{ z-index:2; }
   #view-schedule .day-slot:last-child{ margin-bottom: 32px; }
 
   /* ---- small-screen adaptivity (iPhone SE / mini and similar) ---- */
@@ -593,6 +604,19 @@ function ruPlural(n, one, few, many){
   if(mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return few;
   return many;
 }
+function lessonProgress(slot, now){
+  const sMin = timeToMinutes(slot.start), eMin = timeToMinutes(slot.end);
+  const nowMin = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+  const pct = Math.max(0, Math.min(100, (nowMin - sMin) / (eMin - sMin) * 100));
+  const left = Math.max(0, Math.ceil(eMin - nowMin));
+  return { pct, left };
+}
+function progressBarHtml(slot, now, withLabel){
+  const { pct, left } = lessonProgress(slot, now);
+  const bar = `<div class="pbar"><div class="pfill" style="width:${pct.toFixed(1)}%"></div></div>`;
+  if(!withLabel) return bar;
+  return bar + `<div class="plabel"><span>${Math.round(pct)}%</span><span>ещё ${left} мин</span></div>`;
+}
 function timeToMinutes(t){ const [h,m] = t.split(':').map(Number); return h*60+m; }
 const USER_NAME = 'Жазира';
 function greetingText(h){
@@ -771,7 +795,8 @@ function renderSchedule(){
         const weekTag = it.week ? `<span class="week-tag this-week">${it.week}-я нед.</span>` : '';
         return `<div class="gitem"><div class="gtitle">${escapeHtml(it.title)} ${weekTag}</div>${it.room ? `<div class="groom">ауд. ${escapeHtml(it.room)}</div>` : ''}</div>`;
       }).join('');
-      list += `<div class="day-slot${isNow ? ' now' : ''}" data-day="${scheduleDay}" data-slot="${si}">${timecol}<div class="slot-body">${inner}</div></div>`;
+      const fill = isNow ? `<div class="slot-fill" style="width:${lessonProgress(slot, now).pct.toFixed(1)}%"></div>` : '';
+      list += `<div class="day-slot${isNow ? ' now' : ''}" data-day="${scheduleDay}" data-slot="${si}">${fill}${timecol}<div class="slot-body">${inner}</div></div>`;
     }
   });
 
@@ -877,7 +902,7 @@ function escapeHtml(s){
 
 function renderAll(){ renderHero(); renderSchedule(); renderNotes(); renderTasks(); }
 renderAll();
-setInterval(() => { renderHero(); if(currentView === 'schedule') renderSchedule(); }, 30000);
+setInterval(() => { renderHero(); if(currentView === 'schedule') renderSchedule(); }, 15000);
 
 // ---------- click handling: delete / toggle / edit ----------
 document.addEventListener('click', (e) => {
