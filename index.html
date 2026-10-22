@@ -320,6 +320,7 @@
   }
   .day-slot.now .timecol2, .day-slot.now .slot-body{ position:relative; z-index:1; }
   .day-slot.now::before{ z-index:2; }
+  .vacancy-tag{ margin-top:4px; font-size:12px; color:var(--amber); }
   #view-schedule .day-slot:last-child{ margin-bottom: 32px; }
 
   /* ---- small-screen adaptivity (iPhone SE / mini and similar) ---- */
@@ -769,6 +770,11 @@ $('#pvImg').addEventListener('click', e => {
 });
 const PHOTO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>';
 
+// вакансии: day 0 = Пн, 2 = Ср, 3 = Чт
+const VACANCIES = [
+  { group:'ПО-242.1г', days:[0, 3] },
+  { group:'ПИ-252.1',  days:[2] }
+];
 // ---------- render: schedule (only the selected day, defaults to today) ----------
 function renderSchedule(){
   const el = $('#view-schedule');
@@ -793,7 +799,9 @@ function renderSchedule(){
     } else {
       const inner = items.map(it => {
         const weekTag = it.week ? `<span class="week-tag this-week">${it.week}-я нед.</span>` : '';
-        return `<div class="gitem"><div class="gtitle">${escapeHtml(it.title)} ${weekTag}</div>${it.room ? `<div class="groom">ауд. ${escapeHtml(it.room)}</div>` : ''}</div>`;
+        const isVac = VACANCIES.some(v => v.days.includes(scheduleDay) && it.title.toLowerCase().startsWith(v.group.toLowerCase()));
+        const vacTag = isVac ? `<div class="vacancy-tag">Вакансия</div>` : '';
+        return `<div class="gitem"><div class="gtitle">${escapeHtml(it.title)} ${weekTag}</div>${it.room ? `<div class="groom">ауд. ${escapeHtml(it.room)}</div>` : ''}${vacTag}</div>`;
       }).join('');
       const fill = isNow ? `<div class="slot-fill" style="width:${lessonProgress(slot, now).pct.toFixed(1)}%"></div>` : '';
       list += `<div class="day-slot${isNow ? ' now' : ''}" data-day="${scheduleDay}" data-slot="${si}">${fill}${timecol}<div class="slot-body">${inner}</div></div>`;
